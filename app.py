@@ -4,8 +4,13 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
+# --- NEW IMPORTS FOR URL SCRAPING ---
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
-# --- 1. Load Resources and Set up Preprocessing ---
+
+# --- 1. Load Resources and Set up Preprocessing (NO CHANGES TO MODEL LOGIC) ---
 try:
     nltk.download('stopwords', quiet=True) 
     nltk.download('punkt', quiet=True)
@@ -38,7 +43,41 @@ def load_resources():
 
 loaded_vectorizer, loaded_model = load_resources()
 
-# --- 2. Prediction Function ---
+# --- NEW FUNCTION: Article Fetching Logic ---
+def fetch_article_text(url):
+    """Fetches the visible text from a given URL using web scraping."""
+    # Basic URL validation
+    if not urlparse(url).scheme in ['http', 'https']:
+        return None, "Invalid URL format. Must start with http:// or https://"
+    
+    try:
+        # 1. Fetch HTML content using a User-Agent header to mimic a browser
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status() # Raise an exception for bad status codes (4xx, 5xx)
+
+        # 2. Parse HTML and extract text
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Simple extraction: get all visible text
+        article_text = soup.get_text(separator=' ', strip=True)
+        
+        if len(article_text) < 100:
+             return None, "The scraping retrieved too little text (less than 100 characters). The website might be JavaScript-heavy or blocked."
+             
+        return article_text, None
+        
+    except requests.exceptions.Timeout:
+        return None, "Request timed out. The URL took too long to respond."
+    except requests.exceptions.HTTPError as e:
+        return None, f"HTTP Error: Could not access the URL. Status Code: {e.response.status_code}."
+    except requests.exceptions.RequestException as e:
+        return None, f"Error accessing the URL: {e}"
+    except Exception as e:
+        return None, f"An unexpected error occurred during scraping: {e}"
+
+
+# --- 2. Prediction Function (NO CHANGES HERE) ---
 def detect_fake_news(news_article):
     cleaned_text = preprocess_text(news_article)
     vectorized_text = loaded_vectorizer.transform([cleaned_text])
@@ -46,11 +85,12 @@ def detect_fake_news(news_article):
     return 'REAL' if prediction == 1 else 'FAKE'
 
 
-# --- 3. Custom Styling Function ---
+# --- 3. Custom Styling Function (YOUR EXISTING CSS) ---
 def set_custom_styles():
     st.markdown(
         """
         <style>
+        /* ... (Your full CSS block from the previous step) ... */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
         
         /* Global Background and Fonts */
@@ -106,13 +146,13 @@ def set_custom_styles():
             transform: translateY(1px); /* Button press animation */
         }
         
-        /* Styling for Text Area */
-        .stTextArea label {
+        /* Styling for Text Area and URL Input */
+        .stTextArea label, .stTextInput label {
             color: #fff !important;
             font-family: 'Times New Roman', Times, serif; /* Changed to Times New Roman */
         }
-        .stTextArea textarea {
-            font-family: 'Times New Roman', Times, serif; /* Apply Times New Roman to text area content */
+        .stTextArea textarea, .stTextInput input {
+            font-family: 'Times New Roman', Times, serif; /* Apply Times New Roman to content */
         }
 
         /* Styling for Success/Error Messages */
@@ -129,37 +169,67 @@ def set_custom_styles():
         unsafe_allow_html=True
     )
 
-# --- 4. Streamlit UI Definition ---
-set_custom_styles() # Inject the custom styles first!
+# --- 4. Streamlit UI Definition (Updated to include URL input) ---
+set_custom_styles() 
 
 st.title("📰 Fake News Detector")
 st.markdown("---")
 
 st.markdown("""
 <p style='text-align: center; font-size: 1.1em; color: #f0f0f0; font-family: "Times New Roman", Times, serif;'>
-    Paste a news article or snippet below. Our model will analyze if it's "Real" or "Fake".
+    Analyze a news source by pasting the URL or pasting the text directly.
 </p>
 """, unsafe_allow_html=True)
 
-# Use columns for centering the input area better and increasing width
-col1, col2, col3 = st.columns([0.5, 6, 0.5]) # Increased middle column width
+col1, col2, col3 = st.columns([0.5, 6, 0.5]) 
 
 with col2:
-    # Text Area for User Input
-    news_input = st.text_area("Paste the News Article Here:", height=250, 
+    # NEW: URL Input Field
+    news_url = st.text_input("Paste the News Article URL Here:", 
+                             placeholder="e.g., https://www.nytimes.com/article...",
+                             key="news_url")
+    
+    st.markdown("<p style='text-align: center; color: #aaa;'>— OR —</p>", unsafe_allow_html=True)
+
+    # Existing: Text Area for User Input
+    news_input = st.text_area("Paste the News Article Text Here:", height=200, 
                               placeholder='"A new study released today proves that eating chocolate is the secret to eternal life..."',
                               key="news_input")
     
-    # Prediction Button is placed centrally using CSS, removing redundant markdown wrapper
+    # Prediction Button
     analyze_button = st.button('Analyze News')
 
     st.markdown("---")
 
-    # Display Analysis Result
+    # Display Analysis Result Logic (Updated to handle both inputs)
     if analyze_button:
-        if news_input:
-            with st.spinner('Analyzing patterns...'):
-                result = detect_fake_news(news_input)
+        article_to_analyze = None
+        error_message = None
+
+        if news_url:
+            # 1. Scrape the article from the URL
+            with st.spinner('Fetching and scraping article from URL...'):
+                article_to_analyze, error_message = fetch_article_text(news_url)
+                
+            if error_message:
+                st.error(f"Scraping Failed: {error_message}")
+                # Do not proceed with prediction
+                st.stop()
+            elif article_to_analyze:
+                st.info("Article content successfully retrieved from URL.")
+
+        elif news_input:
+            # 2. Use direct text input
+            article_to_analyze = news_input
+            
+        else:
+            st.warning("Please provide a URL or paste text into the box to analyze.")
+            st.stop()
+            
+        # 3. Run the prediction on the retrieved/pasted text
+        if article_to_analyze and len(article_to_analyze.strip()) > 10:
+            with st.spinner('Running prediction model...'):
+                result = detect_fake_news(article_to_analyze)
 
             st.markdown("### Analysis Result:")
 
@@ -167,8 +237,15 @@ with col2:
                 st.success(f"Classification: **✅ {result}**")
             else:
                 st.error(f"Classification: **❌ {result}**")
-        else:
-            st.warning("Please paste some text into the box to analyze.")
+
+            st.markdown(
+                "<p style='text-align: center; font-size: 0.9em; color: #bbb; font-style: italic; font-family: \"Times New Roman\", Times, serif;'>Model can make mistakes. Always verify the results.</p>",
+                unsafe_allow_html=True
+            )
+        elif article_to_analyze:
+            # This handles the case where scraping retrieved too little text (error already handled)
+            st.warning("The content found was too short to analyze.")
+
 
 # Footer
 st.markdown("<p style='text-align: center; font-size: 0.8em; color: #bbb; font-style: italic; font-family: \"Times New Roman\", Times, serif;'>Developed by Dee</p>", unsafe_allow_html=True)
