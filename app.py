@@ -166,10 +166,8 @@ with col2:
 
             if result == 'REAL':
                 st.success(f"Classification: **{result}**")
-                st.balloons()
             else:
                 st.error(f"Classification: **{result}**")
-                st.snow()
         else:
             st.warning("Please paste some text into the box to analyze.")
 
