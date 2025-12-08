@@ -137,8 +137,7 @@ st.markdown("---")
 
 st.markdown("""
 <p style='text-align: center; font-size: 1.1em; color: #f0f0f0; font-family: "Times New Roman", Times, serif;'>
-    Paste a news article or snippet below. Our model will analyze the language 
-    patterns and determine if it aligns with "Real" or "Fake" news characteristics.
+    Paste a news article or snippet below. Our model will analyze if it's "Real" or "Fake".
 </p>
 """, unsafe_allow_html=True)
 
@@ -148,7 +147,7 @@ col1, col2, col3 = st.columns([0.5, 6, 0.5]) # Increased middle column width
 with col2:
     # Text Area for User Input
     news_input = st.text_area("Paste the News Article Here:", height=250, 
-                              placeholder="Example: 'A new study released today proves that eating chocolate is the secret to eternal life.'",
+                              placeholder='"A new study released today proves that eating chocolate is the secret to eternal life..."',
                               key="news_input")
     
     # Prediction Button is placed centrally using CSS, removing redundant markdown wrapper
@@ -165,9 +164,9 @@ with col2:
             st.markdown("### Analysis Result:")
 
             if result == 'REAL':
-                st.success(f"Classification: **{result}**")
+                st.success(f"Classification: **✅ {result}**")
             else:
-                st.error(f"Classification: **{result}**")
+                st.error(f"Classification: **❌ {result}**")
         else:
             st.warning("Please paste some text into the box to analyze.")
 
