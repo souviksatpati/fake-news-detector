@@ -3,8 +3,6 @@
 ## Overview
 This project implements a machine learning solution to classify news articles as 'Real' or 'Fake'. The solution is deployed as an interactive web application using Streamlit, allowing users to paste any text snippet for instant classification.
 
-## Website
-### [Click Here!](https://fake-news-detection-dee.streamlit.app/)
 
 ## Methodology
 This is a standard text classification problem solved using the following NLP and ML pipeline:
@@ -22,13 +20,7 @@ This is a standard text classification problem solved using the following NLP an
 | **Model** | Passive Aggressive Classifier |
 | **Vectorizer**| TF-IDF (Term Frequency-Inverse Document Frequency) |
 
-## How to Run Locally
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/dipmanjumdar/Fake-News-Detection-ML-App.git
-    cd Fake-News-Detection-ML-App
-    ```
+ 
 2.  **Install Dependencies:**
     ```bash
     pip install -r requirements.txt
