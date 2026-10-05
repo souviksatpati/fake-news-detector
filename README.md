@@ -37,5 +37,17 @@ The application will open automatically in browser at `http://localhost:8501`.
 * `requirements.txt`: Lists all Python library dependencies.
 * `fake_news_detector_model.pkl`: The trained Passive Aggressive Classifier model.
 * `tfidf_vectorizer.pkl`: The fitted TF-IDF object, essential for preprocessing new data identically to the training data.
+Limitations
 
+The model depends on the quality of the training dataset.
+
+It may not correctly classify newly emerging types of misinformation.
+
+The model analyzes text patterns and does not independently verify facts.
+
+Satire, opinions, and partially true articles may be difficult to classify.
+
+The reported accuracy is based on the evaluation dataset and may differ on real-world data.
+
+Therefore, the prediction should be considered a machine learning result and not a final fact-check.
 ---
